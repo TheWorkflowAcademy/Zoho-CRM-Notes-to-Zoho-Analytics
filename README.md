@@ -18,7 +18,7 @@ Use the default connections in Zoho CRM for both of these.
 
 ## Retrieve New Notes
 Since this will run on a scheduled function which is invoked every 2 hours, we will request all the Notes *updated* within the last two hours. 
-The endpoint to use is the general [Notes endpoint](zoho.com/crm/developer/docs/api/v2/get-notes.html) in the Zoho CRM API. To retrieve the most recently updated Notes, include the ```{"If-Modified-Since":modifiedSinceStr}``` snippet as your ```headers``` parameter, after defining your ```modifiedSinceStr``` as 2 hours ago.
+The endpoint to use is the general [Notes endpoint](https://www.zoho.com/crm/developer/docs/api/v3/get-notes.html) in the Zoho CRM API. To retrieve the most recently updated Notes, include the ```{"If-Modified-Since":modifiedSinceStr}``` snippet as your ```headers``` parameter, after defining your ```modifiedSinceStr``` as 2 hours ago.
 
 Here is a sample request:
 ```
