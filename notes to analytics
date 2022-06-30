@@ -1,0 +1,126 @@
+// Set all of our initial variables
+// ------------------
+workspaceId = "1111111111111111";
+viewId = "2222222222222222";
+baseUrl = "https://analyticsapi.zoho.com/restapi/v2/workspaces/";
+endpointUrl = baseUrl + workspaceId + "/views/" + viewId + "/rows";
+exportUrl = baseUrl + workspaceId + "/views/" + viewId + "/data";
+orgId = "33333333";
+headersMap = Map();
+headersMap.put("ZANALYTICS-ORGID",orgId);
+modifiedSince = zoho.currenttime.subMonth(36);
+modifiedSinceStr = modifiedSince.toString("yyyy-MM-dd'T'HH:mm:ss'-07:00'");
+// -----------------
+// Call all of the notes that have been modified/created in the last 2 hours
+perPage = 200;
+allNotes = List();
+iterationComplete = false;
+pageList = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25};
+for each  page in pageList
+{
+	if(!iterationComplete)
+	{
+		info page;
+		notesResponse = invokeurl
+		[
+			url :"https://www.zohoapis.com/crm/v3/Notes?fields=Created_By,Created_Time,Note_Title,Modified_By,Modified_Time,Note_Content,$se_module,Parent_Id,id&page=" + page + "&per_page=" + perPage
+			type :GET
+			headers:{"If-Modified-Since":modifiedSinceStr}
+			detailed:true
+			connection:"crm"
+		];
+		// 		info notesResponse;
+		// Get records from API response. Add them to allNotes list.
+		notes = notesResponse.get("responseText").get("data");
+		allNotes.addAll(notes);
+		if(notes.size() < perPage)
+		{
+			iterationComplete = true;
+		}
+	}
+}
+info "All Notes: " + allNotes;
+//Create a 'Row Map' for each of those rows
+created = List();
+updated = List();
+for each  note in allNotes
+{
+	// Create Map to Represent Analytics Row
+	createTime = note.get("Created_Time");
+	id = note.get("id");
+	rowMap = Map();
+	rowMap.put("Note ID",id);
+	rowMap.put("Created By",note.get("Created_By").get("id"));
+	rowMap.put("Created Time",note.get("Created_Time").replaceAll("T"," ").toString('MM/dd/yyyy HH:mm:ss'));
+	rowMap.put("Modified By",note.get("Modified_By").get("id"));
+	rowMap.put("Modified Time",note.get("Modified_Time").replaceAll("T"," ").toString('MM/dd/yyyy HH:mm:ss'));
+	rowMap.put("Parent ID",note.get("Parent_Id").get("id"));
+	rowMap.put("Module",note.get("$se_module"));
+	if(!isNull(note.get("Note_Title")))
+	{
+		rowMap.put("Note Title",note.get("Note_Title"));
+	}
+	if(!isNull(note.get("Note_Content")))
+	{
+		rowMap.put("Note Content",note.get("Note_Content"));
+	}
+	// 'Export' data from the Analytics report to check and see if the row already exists there or not
+	config = Map();
+	config.put("responseFormat","json");
+	config.put("keyValueFormat",true);
+	criteria = "\"Note ID\"=" + id.toString();
+	config.put("criteria",criteria);
+	paramsMap = Map();
+	paramsMap.put("CONFIG",config.toString());
+	// ------
+	exportDataResponse = invokeurl
+	[
+		url :exportUrl
+		type :GET
+		parameters:paramsMap
+		headers:headersMap
+		connection:"analytics"
+	];
+	info "Export Data Response: " + exportDataResponse;
+	// If the row exists and it's in our allNotes List, UPDATE the row in Analytics
+	if(!exportDataResponse.get("data").isEmpty())
+	{
+		// ---- If it grabbed the row then we need to UPDATE THE ROOOOOOW instead of create it
+		info "Going to update a Row";
+		config = Map();
+		config.put("columns",rowMap);
+		config.put("criteria",criteria);
+		params = "CONFIG=" + config.toString();
+	  		updateRowResponse = invokeurl
+			[
+				url: endpointUrl + "?" + params
+				type: PUT
+				headers: headersMap
+				connection:"analytics"
+			];
+		info "Updated Row? " + updateRowResponse;
+		updated.add(id);
+	}
+	// If the row is not already in analytics, ADD THE ROW to Analytics
+	else
+	{
+		// ----- If it did not grab the row then we need to ADD THE ROOOOOOOOW
+		columns = Map();
+		columns.put("columns",rowMap);
+		params = Map();
+		params.put("CONFIG",columns.toString());
+		createRowResponse = invokeurl
+		[
+			url :endpointUrl
+			type :POST
+			parameters:params
+			headers:headersMap
+			connection:"analytics"
+		];
+		info "Created Row? " + createRowResponse;
+		created.add(id);
+	}
+}
+// Summary info statements
+info "Created (" + created.size() + "): " + created;
+info "Updated (" + updated.size() + "): " + updated;
