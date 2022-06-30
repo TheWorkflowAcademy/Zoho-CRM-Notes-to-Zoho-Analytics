@@ -73,7 +73,7 @@ else
 
 Here are the endpoints for the Zoho Analytics API:
 - Add Row: https://www.zoho.com/analytics/api/v2/#add-row
-- Update Data: https://www.zoho.com/analytics/api/v2/#update-row (However, we have had problems with this API call and suggest using the integration task found here
+- Update Data: https://www.zoho.com/analytics/api/v2/#update-row (However, we have had problems with this API call and suggest using the [integration task found here] (https://www.zoho.com/deluge/help/analytics/update-row.html)
 - Export data API: https://www.zoho.com/analytics/api/v2/#export-data
 
 
